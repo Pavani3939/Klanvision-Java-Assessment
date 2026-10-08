@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Portal & Recruitment Management System - Klanvision</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6f42c1;
+            --bg-gradient: linear-gradient(135deg, #f3e7e9 0%, #e3eeff 100%);
+        }
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand { font-weight: 700; }
+        .card-custom {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            background: #ffffff;
+            transition: transform 0.2s;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+            box-shadow: 0 4px 10px rgba(111, 66, 193, 0.3);
+        }
+        .status-badge { font-size: 0.8rem; padding: 4px 10px; border-radius: 12px; }
+        .status-APPLIED { background-color: #e2e3e5; color: #41464b; }
+        .status-SHORTLISTED { background-color: #cff4fc; color: #055160; }
+        .status-INTERVIEW { background-color: #fff3cd; color: #664d03; }
+        .status-SELECTED { background-color: #d1e7dd; color: #0f5132; }
+        .status-REJECTED { background-color: #f8d7da; color: #842029; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="bi bi-briefcase-fill text-warning me-2"></i>KLANVISION Job Portal</a>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-2">Role View:</span>
+                <select id="roleSelector" class="form-select form-select-sm w-auto" onchange="switchRole()">
+                    <option value="CANDIDATE">Candidate View</option>
+                    <option value="EMPLOYER">Employer / Company View</option>
+                    <option value="ADMIN" selected>Admin View</option>
+                </select>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div id="alertContainer"></div>
+
+        <ul class="nav nav-pills mb-4 justify-content-center" id="mainTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#searchView" type="button"><i class="bi bi-search me-1"></i>Search & Apply Jobs</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="post-tab" data-bs-toggle="tab" data-bs-target="#postView" type="button"><i class="bi bi-plus-square me-1"></i>Post & Manage Jobs</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tracker-tab" data-bs-toggle="tab" data-bs-target="#trackerView" type="button"><i class="bi bi-file-earmark-person me-1"></i>Application Tracking</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="profiles-tab" data-bs-toggle="tab" data-bs-target="#profilesView" type="button"><i class="bi bi-building me-1"></i>Candidates & Companies</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+
+            <!-- SEARCH JOBS TAB -->
+            <div class="tab-pane fade show active" id="searchView">
+                <div class="card card-custom p-4 mb-4">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-9">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="jobSearchInput" placeholder="Search by job title, required skill, company, or location..." onkeyup="searchJobs()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary w-100" onclick="searchJobs()"><i class="bi bi-funnel me-1"></i>Filter Jobs</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4" id="jobsGrid"></div>
+            </div>
+
+            <!-- POST & MANAGE JOBS TAB -->
+            <div class="tab-pane fade" id="postView">
+                <div class="row g-4">
+                    <div class="col-md-5">
+                        <div class="card card-custom p-4">
+                            <h5 class="card-title text-purple mb-3"><i class="bi bi-plus-circle me-2"></i>Post New Job</h5>
+                            <form id="postJobForm" onsubmit="handlePostJob(event)">
+                                <div class="mb-2">
+                                    <label class="form-label">Select Hiring Company</label>
+                                    <select class="form-select" id="postCompanySelect" required></select>
+                                </div>
+                                <div class="mb-2"><input type="text" class="form-control" id="jobTitle" placeholder="Job Title" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="jobSkills" placeholder="Required Skills (e.g. Java, Spring Boot)" required></div>
+                                <div class="mb-2"><input type="number" class="form-control" id="jobSalary" placeholder="Salary (Annual in INR)" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="jobLocation" placeholder="Location (e.g., Hyderabad / Remote)" required></div>
+                                <div class="mb-3"><textarea class="form-control" id="jobDesc" rows="3" placeholder="Detailed Job Description" required></textarea></div>
+                                <button type="submit" class="btn btn-primary w-100">Publish Job Posting</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card card-custom p-4">
+                            <h5 class="card-title text-purple mb-3"><i class="bi bi-list-task me-2"></i>Active Job Listings</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th><th>Title</th><th>Company</th><th>Salary</th><th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="manageJobsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- APPLICATION TRACKER TAB -->
+            <div class="tab-pane fade" id="trackerView">
+                <div class="card card-custom p-4">
+                    <h5 class="card-title text-purple mb-3"><i class="bi bi-kanban me-2"></i>Application Tracking System (ATS)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th><th>Candidate</th><th>Job Title & Company</th><th>Applied Date</th><th>Resume Summary</th><th>Status</th><th>Update Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="applicationsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CANDIDATES & COMPANIES TAB -->
+            <div class="tab-pane fade" id="profilesView">
+                <div class="row g-4">
+                    <!-- Candidate Registration & List -->
+                    <div class="col-md-6">
+                        <div class="card card-custom p-4 mb-4">
+                            <h5 class="card-title text-purple mb-3"><i class="bi bi-person-lines-fill me-2"></i>Register Candidate</h5>
+                            <form id="candForm" onsubmit="handleRegisterCandidate(event)">
+                                <div class="row g-2 mb-2">
+                                    <div class="col"><input type="text" class="form-control" id="candName" placeholder="Full Name" required></div>
+                                    <div class="col"><input type="email" class="form-control" id="candEmail" placeholder="Email" required></div>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col"><input type="text" class="form-control" id="candPhone" placeholder="Phone" required></div>
+                                    <div class="col"><input type="number" class="form-control" id="candExp" placeholder="Exp (Years)" required></div>
+                                </div>
+                                <div class="mb-2"><input type="text" class="form-control" id="candEducation" placeholder="Education (e.g. B.Tech CS)" required></div>
+                                <div class="mb-3"><input type="text" class="form-control" id="candSkills" placeholder="Skills (comma separated)" required></div>
+                                <button type="submit" class="btn btn-outline-primary w-100">Register Candidate</button>
+                            </form>
+                        </div>
+                        <div class="card card-custom p-4">
+                            <h6 class="fw-bold">Registered Candidates</h6>
+                            <ul class="list-group list-group-flush" id="candidatesList"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Company Registration & List -->
+                    <div class="col-md-6">
+                        <div class="card card-custom p-4 mb-4">
+                            <h5 class="card-title text-purple mb-3"><i class="bi bi-building-add me-2"></i>Register Company</h5>
+                            <form id="compForm" onsubmit="handleRegisterCompany(event)">
+                                <div class="row g-2 mb-2">
+                                    <div class="col"><input type="text" class="form-control" id="compName" placeholder="Company Name" required></div>
+                                    <div class="col"><input type="email" class="form-control" id="compEmail" placeholder="HR Email" required></div>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col"><input type="text" class="form-control" id="compLocation" placeholder="Location" required></div>
+                                    <div class="col"><input type="text" class="form-control" id="compIndustry" placeholder="Industry Sector" required></div>
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary w-100">Register Company</button>
+                            </form>
+                        </div>
+                        <div class="card card-custom p-4">
+                            <h6 class="fw-bold">Registered Companies</h6>
+                            <ul class="list-group list-group-flush" id="companiesList"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Apply Job Modal -->
+    <div class="modal fade" id="applyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-send-check me-2"></i>Submit Job Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalJobId">
+                    <div class="mb-3">
+                        <label class="form-label">Select Candidate Profile</label>
+                        <select class="form-select" id="applyCandidateSelect" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Resume / Cover Summary</label>
+                        <textarea class="form-control" id="applyResumeText" rows="3" placeholder="Briefly describe your relevant skills & experience..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="submitApplication()">Submit Application</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '/api';
+        let applyModalObj;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyModalObj = new bootstrap.Modal(document.getElementById('applyModal'));
+            loadCandidates();
+            loadCompanies();
+            loadJobs();
+            loadApplications();
+        });
+
+        function switchRole() {
+            const role = document.getElementById('roleSelector').value;
+            showAlert(`Switched to ${role} perspective.`, 'info');
+        }
+
+        function showAlert(msg, type = 'danger') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${msg}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 4000);
+        }
+
+        async function loadCandidates() {
+            const res = await fetch(`${API_BASE}/candidates`);
+            const candidates = await res.json();
+
+            const modalSel = document.getElementById('applyCandidateSelect');
+            modalSel.innerHTML = '<option value="">-- Select Candidate --</option>';
+            const list = document.getElementById('candidatesList');
+            list.innerHTML = '';
+
+            candidates.forEach(c => {
+                modalSel.innerHTML += `<option value="${c.id}">${c.name} (${c.email})</option>`;
+                list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div><strong>${c.name}</strong><br><small class="text-muted">${c.skills}</small></div>
+                    <span class="badge bg-secondary">${c.experience} yrs exp</span>
+                </li>`;
+            });
+        }
+
+        async function loadCompanies() {
+            const res = await fetch(`${API_BASE}/companies`);
+            const companies = await res.json();
+
+            const postSel = document.getElementById('postCompanySelect');
+            postSel.innerHTML = '<option value="">-- Choose Company --</option>';
+            const list = document.getElementById('companiesList');
+            list.innerHTML = '';
+
+            companies.forEach(c => {
+                postSel.innerHTML += `<option value="${c.id}">${c.companyName} (${c.location})</option>`;
+                list.innerHTML += `<li class="list-group-item"><strong>${c.companyName}</strong> - ${c.industry} (${c.location})</li>`;
+            });
+        }
+
+        async function loadJobs() {
+            const res = await fetch(`${API_BASE}/jobs`);
+            const jobs = await res.json();
+            renderJobs(jobs);
+        }
+
+        async function searchJobs() {
+            const kw = document.getElementById('jobSearchInput').value;
+            const res = await fetch(`${API_BASE}/jobs/search?keyword=${encodeURIComponent(kw)}`);
+            const jobs = await res.json();
+            renderJobs(jobs);
+        }
+
+        function renderJobs(jobs) {
+            const grid = document.getElementById('jobsGrid');
+            const tbody = document.getElementById('manageJobsTableBody');
+            grid.innerHTML = '';
+            tbody.innerHTML = '';
+
+            jobs.forEach(j => {
+                grid.innerHTML += `
+                    <div class="col-md-6">
+                        <div class="card card-custom p-4 h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="text-primary mb-0">${j.title}</h5>
+                                    <span class="badge bg-success">₹${j.salary.toLocaleString()} / yr</span>
+                                </div>
+                                <h6 class="text-muted mb-2"><i class="bi bi-building me-1"></i>${j.company.companyName} &bull; <i class="bi bi-geo-alt me-1"></i>${j.location}</h6>
+                                <p class="card-text text-secondary mb-3">${j.description}</p>
+                                <div class="mb-3">
+                                    <small class="fw-bold">Required Skills:</small><br>
+                                    <span class="badge bg-light text-dark border">${j.requiredSkills}</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-primary w-100" onclick="openApplyModal(${j.id})"><i class="bi bi-send me-1"></i>Apply Now</button>
+                        </div>
+                    </div>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${j.id}</td>
+                        <td><strong>${j.title}</strong></td>
+                        <td>${j.company.companyName}</td>
+                        <td>₹${j.salary.toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="closeJob(${j.id})">Close Job</button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        async function loadApplications() {
+            const res = await fetch(`${API_BASE}/applications`);
+            const apps = await res.json();
+            const tbody = document.getElementById('applicationsTableBody');
+            tbody.innerHTML = '';
+
+            const statuses = ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'SELECTED', 'REJECTED'];
+
+            apps.forEach(a => {
+                let optionsHtml = statuses.map(s => `<option value="${s}" ${s === a.status ? 'selected' : ''}>${s}</option>`).join('');
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${a.id}</td>
+                        <td><strong>${a.candidate.name}</strong><br><small>${a.candidate.email}</small></td>
+                        <td>${a.jobPosting.title}<br><small class="text-muted">${a.jobPosting.company.companyName}</small></td>
+                        <td>${new Date(a.appliedAt).toLocaleDateString()}</td>
+                        <td>${a.resumeSummary || '-'}</td>
+                        <td><span class="badge status-badge status-${a.status}">${a.status}</span></td>
+                        <td>
+                            <select class="form-select form-select-sm w-auto" onchange="updateAppStatus(${a.id}, this.value)">
+                                ${optionsHtml}
+                            </select>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        async function handleRegisterCandidate(e) {
+            e.preventDefault();
+            const cand = {
+                name: document.getElementById('candName').value,
+                email: document.getElementById('candEmail').value,
+                phone: document.getElementById('candPhone').value,
+                experience: parseInt(document.getElementById('candExp').value),
+                education: document.getElementById('candEducation').value,
+                skills: document.getElementById('candSkills').value
+            };
+            const res = await fetch(`${API_BASE}/candidates/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cand)
+            });
+            if (res.ok) {
+                showAlert('Candidate registered!', 'success');
+                document.getElementById('candForm').reset();
+                loadCandidates();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Registration failed');
+            }
+        }
+
+        async function handleRegisterCompany(e) {
+            e.preventDefault();
+            const comp = {
+                companyName: document.getElementById('compName').value,
+                email: document.getElementById('compEmail').value,
+                location: document.getElementById('compLocation').value,
+                industry: document.getElementById('compIndustry').value
+            };
+            const res = await fetch(`${API_BASE}/companies/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(comp)
+            });
+            if (res.ok) {
+                showAlert('Company registered!', 'success');
+                document.getElementById('compForm').reset();
+                loadCompanies();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Company registration failed');
+            }
+        }
+
+        async function handlePostJob(e) {
+            e.preventDefault();
+            const companyId = document.getElementById('postCompanySelect').value;
+            const job = {
+                title: document.getElementById('jobTitle').value,
+                requiredSkills: document.getElementById('jobSkills').value,
+                salary: parseFloat(document.getElementById('jobSalary').value),
+                location: document.getElementById('jobLocation').value,
+                description: document.getElementById('jobDesc').value
+            };
+            const res = await fetch(`${API_BASE}/jobs/post?companyId=${companyId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(job)
+            });
+            if (res.ok) {
+                showAlert('Job posted successfully!', 'success');
+                document.getElementById('postJobForm').reset();
+                loadJobs();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Failed to post job');
+            }
+        }
+
+        function openApplyModal(jobId) {
+            document.getElementById('modalJobId').value = jobId;
+            applyModalObj.show();
+        }
+
+        async function submitApplication() {
+            const jobId = document.getElementById('modalJobId').value;
+            const candidateId = document.getElementById('applyCandidateSelect').value;
+            const resumeText = document.getElementById('applyResumeText').value;
+
+            if (!candidateId) {
+                showAlert('Please select a candidate profile');
+                return;
+            }
+
+            const res = await fetch(`${API_BASE}/applications/apply?candidateId=${candidateId}&jobId=${jobId}&resumeSummary=${encodeURIComponent(resumeText)}`, {
+                method: 'POST'
+            });
+
+            if (res.ok) {
+                showAlert('Application submitted successfully!', 'success');
+                applyModalObj.hide();
+                loadApplications();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Application failed. Duplicate application detected.');
+            }
+        }
+
+        async function closeJob(id) {
+            const res = await fetch(`${API_BASE}/jobs/${id}/close`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert('Job posting closed.', 'warning');
+                loadJobs();
+            }
+        }
+
+        async function updateAppStatus(id, newStatus) {
+            const res = await fetch(`${API_BASE}/applications/${id}/status?status=${newStatus}`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert('Status updated!', 'success');
+                loadApplications();
+            }
+        }
+    </script>
+</body>
+</html>

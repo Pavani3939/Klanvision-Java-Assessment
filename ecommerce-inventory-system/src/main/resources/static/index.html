@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Order & Inventory Management System - Klanvision</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #198754;
+            --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #dcfce7 100%);
+        }
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card-custom {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            background: #ffffff;
+            transition: transform 0.2s;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+        }
+        .badge-status { font-size: 0.85rem; padding: 5px 12px; border-radius: 15px; }
+        .status-PLACED { background-color: #cff4fc; color: #055160; }
+        .status-PROCESSING { background-color: #fff3cd; color: #664d03; }
+        .status-SHIPPED { background-color: #e0cffc; color: #3d0a91; }
+        .status-DELIVERED { background-color: #d1e7dd; color: #0f5132; }
+        .status-CANCELLED { background-color: #f8d7da; color: #842029; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="bi bi-cart-check-fill text-success me-2"></i>KLANVISION E-Store & Inventory</a>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-outline-light me-3 position-relative" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                    <i class="bi bi-cart3 me-1"></i>Cart
+                    <span id="cartBadgeCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div id="alertContainer"></div>
+
+        <ul class="nav nav-pills mb-4 justify-content-center" id="mainTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="catalog-tab" data-bs-toggle="tab" data-bs-target="#catalogView" type="button"><i class="bi bi-shop me-1"></i>Product Catalog</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventoryView" type="button"><i class="bi bi-boxes me-1"></i>Inventory & Stock Control</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#ordersView" type="button"><i class="bi bi-receipt me-1"></i>Order Management</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customersView" type="button"><i class="bi bi-people me-1"></i>Customers</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+
+            <!-- CATALOG TAB -->
+            <div class="tab-pane fade show active" id="catalogView">
+                <div class="card card-custom p-4 mb-4">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-9">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="productSearchInput" placeholder="Search by name, category, or product ID..." onkeyup="searchProducts()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-success w-100" onclick="searchProducts()"><i class="bi bi-funnel me-1"></i>Search</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4" id="productsGrid"></div>
+            </div>
+
+            <!-- INVENTORY TAB -->
+            <div class="tab-pane fade" id="inventoryView">
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card card-custom p-4">
+                            <h5 class="card-title text-success mb-3"><i class="bi bi-box-seam me-2"></i>Add New Product</h5>
+                            <form id="addProductForm" onsubmit="handleAddProduct(event)">
+                                <div class="mb-2"><input type="text" class="form-control" id="prdCode" placeholder="Product Code (e.g. PRD-001)" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="prdName" placeholder="Product Name" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="prdCat" placeholder="Category" required></div>
+                                <div class="mb-2"><input type="number" step="0.01" class="form-control" id="prdPrice" placeholder="Price (INR)" required></div>
+                                <div class="mb-3"><input type="number" class="form-control" id="prdQty" placeholder="Initial Quantity Stock" required></div>
+                                <button type="submit" class="btn btn-success w-100">Add Product to Inventory</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card card-custom p-4">
+                            <h5 class="card-title text-success mb-3"><i class="bi bi-table me-2"></i>Inventory Stock Management</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Code</th><th>Name</th><th>Category</th><th>Price</th><th>Stock Status</th><th>Add Stock</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventoryTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ORDERS TAB -->
+            <div class="tab-pane fade" id="ordersView">
+                <div class="card card-custom p-4">
+                    <h5 class="card-title text-success mb-3"><i class="bi bi-box2-heart me-2"></i>Customer Orders & Fulfillment</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order ID</th><th>Customer</th><th>Items Summary</th><th>Total Amount</th><th>Date</th><th>Status</th><th>Update Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CUSTOMERS TAB -->
+            <div class="tab-pane fade" id="customersView">
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card card-custom p-4">
+                            <h5 class="card-title text-success mb-3"><i class="bi bi-person-plus me-2"></i>Register Customer</h5>
+                            <form id="addCustForm" onsubmit="handleRegisterCustomer(event)">
+                                <div class="mb-2"><input type="text" class="form-control" id="custName" placeholder="Full Name" required></div>
+                                <div class="mb-2"><input type="email" class="form-control" id="custEmail" placeholder="Email" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="custPhone" placeholder="Phone" required></div>
+                                <div class="mb-3"><textarea class="form-control" id="custAddress" rows="2" placeholder="Delivery Address" required></textarea></div>
+                                <button type="submit" class="btn btn-success w-100">Register Customer</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card card-custom p-4">
+                            <h5 class="card-title text-success mb-3"><i class="bi bi-people-fill me-2"></i>Customer Directory</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Delivery Address</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="customersTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CART OFFCANVAS -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="cartOffcanvas">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title"><i class="bi bi-cart-check me-2"></i>Shopping Cart</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column justify-content-between">
+            <div>
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Select Customer Account</label>
+                    <select class="form-select" id="cartCustomerSelect" required></select>
+                </div>
+                <hr>
+                <div id="cartItemsContainer"></div>
+            </div>
+            <div class="border-top pt-3">
+                <div class="d-flex justify-content-between mb-3 fw-bold fs-5">
+                    <span>Total Amount:</span>
+                    <span text-success id="cartGrandTotal">₹0.00</span>
+                </div>
+                <button class="btn btn-success w-100 py-2 fs-6 fw-bold" onclick="placeOrderFromCart()"><i class="bi bi-credit-card me-1"></i>Checkout & Place Order</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '/api';
+        let cart = [];
+        let productsCache = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCustomers();
+            loadProducts();
+            loadOrders();
+        });
+
+        function showAlert(msg, type = 'danger') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${msg}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 4000);
+        }
+
+        async function loadCustomers() {
+            const res = await fetch(`${API_BASE}/customers`);
+            const customers = await res.json();
+
+            const select = document.getElementById('cartCustomerSelect');
+            select.innerHTML = '<option value="">-- Choose Customer --</option>';
+            const tbody = document.getElementById('customersTableBody');
+            tbody.innerHTML = '';
+
+            customers.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.name} (${c.email})</option>`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td><strong>${c.name}</strong></td>
+                        <td>${c.email}</td>
+                        <td>${c.phone}</td>
+                        <td>${c.deliveryAddress}</td>
+                    </tr>`;
+            });
+        }
+
+        async function loadProducts() {
+            const res = await fetch(`${API_BASE}/products`);
+            productsCache = await res.json();
+            renderProducts(productsCache);
+            renderInventory(productsCache);
+        }
+
+        async function searchProducts() {
+            const q = document.getElementById('productSearchInput').value;
+            const res = await fetch(`${API_BASE}/products/search?query=${encodeURIComponent(q)}`);
+            const products = await res.json();
+            renderProducts(products);
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+
+            products.forEach(p => {
+                const isOutOfStock = p.availableQuantity <= 0;
+                grid.innerHTML += `
+                    <div class="col-md-4">
+                        <div class="card card-custom p-3 h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <span class="badge bg-secondary mb-2">${p.category}</span>
+                                <h5 class="card-title text-primary">${p.name}</h5>
+                                <p class="text-muted small">Code: ${p.productCode}</p>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="text-success mb-0">₹${p.price.toLocaleString()}</h4>
+                                    <span class="badge ${isOutOfStock ? 'bg-danger' : 'bg-success'}">
+                                        ${isOutOfStock ? 'Out of Stock' : p.availableQuantity + ' in stock'}
+                                    </span>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-success w-100" ${isOutOfStock ? 'disabled' : ''} onclick="addToCart(${p.id})">
+                                <i class="bi bi-cart-plus me-1"></i>${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                            </button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function renderInventory(products) {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '';
+
+            products.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><code>${p.productCode}</code></td>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.category}</td>
+                        <td>₹${p.price.toLocaleString()}</td>
+                        <td>
+                            <span class="badge ${p.availableQuantity > 5 ? 'bg-success' : (p.availableQuantity > 0 ? 'bg-warning text-dark' : 'bg-danger')}">
+                                ${p.availableQuantity} units
+                            </span>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm" style="width: 130px;">
+                                <input type="number" class="form-control" id="addQty_${p.id}" value="10" min="1">
+                                <button class="btn btn-outline-secondary" onclick="addStock(${p.id})">+</button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function addToCart(productId) {
+            const product = productsCache.find(p => p.id === productId);
+            if (!product) return;
+
+            const existing = cart.find(item => item.productId === productId);
+            if (existing) {
+                if (existing.quantity + 1 > product.availableQuantity) {
+                    showAlert(`Cannot add more. Max stock available: ${product.availableQuantity}`);
+                    return;
+                }
+                existing.quantity++;
+            } else {
+                cart.push({ productId: product.id, name: product.name, price: product.price, quantity: 1, maxQty: product.availableQuantity });
+            }
+
+            showAlert(`Added ${product.name} to cart.`, 'success');
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cartItemsContainer');
+            const badge = document.getElementById('cartBadgeCount');
+            container.innerHTML = '';
+
+            let total = 0;
+            let totalCount = 0;
+
+            cart.forEach((item, index) => {
+                const subtotal = item.price * item.quantity;
+                total += subtotal;
+                totalCount += item.quantity;
+
+                container.innerHTML += `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-0">${item.name}</h6>
+                            <small class="text-muted">₹${item.price} x ${item.quantity} = ₹${subtotal}</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-outline-secondary px-2" onclick="changeCartQty(${index}, -1)">-</button>
+                            <span class="mx-2 fw-bold">${item.quantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary px-2" onclick="changeCartQty(${index}, 1)">+</button>
+                            <button class="btn btn-sm btn-link text-danger ms-2" onclick="removeFromCart(${index})"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>`;
+            });
+
+            badge.innerText = totalCount;
+            document.getElementById('cartGrandTotal').innerText = `₹${total.toLocaleString()}`;
+        }
+
+        function changeCartQty(index, delta) {
+            const item = cart[index];
+            if (delta > 0 && item.quantity + delta > item.maxQty) {
+                showAlert(`Cannot exceed available stock limit (${item.maxQty})`);
+                return;
+            }
+            item.quantity += delta;
+            if (item.quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            updateCartUI();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        async function placeOrderFromCart() {
+            const customerId = document.getElementById('cartCustomerSelect').value;
+            if (!customerId) {
+                showAlert('Please select a customer account');
+                return;
+            }
+            if (cart.length === 0) {
+                showAlert('Cart is empty!');
+                return;
+            }
+
+            const payload = {
+                customerId: parseInt(customerId),
+                items: cart.map(i => ({ productId: i.productId, quantity: i.quantity }))
+            };
+
+            const res = await fetch(`${API_BASE}/orders/place`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                showAlert('Order placed successfully!', 'success');
+                cart = [];
+                updateCartUI();
+                bootstrap.Offcanvas.getInstance(document.getElementById('cartOffcanvas')).hide();
+                loadProducts();
+                loadOrders();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Order failed');
+            }
+        }
+
+        async function loadOrders() {
+            const res = await fetch(`${API_BASE}/orders`);
+            const orders = await res.json();
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '';
+
+            const statuses = ['PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+
+            orders.forEach(o => {
+                const itemsSummary = o.items.map(i => `${i.product.name} (x${i.quantity})`).join(', ');
+                const dateStr = new Date(o.createdAt).toLocaleString();
+                let statusOptions = statuses.map(s => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('');
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${o.id}</td>
+                        <td><strong>${o.customer.name}</strong></td>
+                        <td><small>${itemsSummary}</small></td>
+                        <td><strong>₹${o.totalAmount.toLocaleString()}</strong></td>
+                        <td><small>${dateStr}</small></td>
+                        <td><span class="badge badge-status status-${o.status}">${o.status}</span></td>
+                        <td>
+                            <select class="form-select form-select-sm w-auto" ${o.status === 'CANCELLED' ? 'disabled' : ''} onchange="updateOrderStatus(${o.id}, this.value)">
+                                ${statusOptions}
+                            </select>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        async function handleAddProduct(e) {
+            e.preventDefault();
+            const prd = {
+                productCode: document.getElementById('prdCode').value,
+                name: document.getElementById('prdName').value,
+                category: document.getElementById('prdCat').value,
+                price: parseFloat(document.getElementById('prdPrice').value),
+                availableQuantity: parseInt(document.getElementById('prdQty').value)
+            };
+            const res = await fetch(`${API_BASE}/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prd)
+            });
+            if (res.ok) {
+                showAlert('Product added to inventory!', 'success');
+                document.getElementById('addProductForm').reset();
+                loadProducts();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Failed to add product');
+            }
+        }
+
+        async function handleRegisterCustomer(e) {
+            e.preventDefault();
+            const cust = {
+                name: document.getElementById('custName').value,
+                email: document.getElementById('custEmail').value,
+                phone: document.getElementById('custPhone').value,
+                deliveryAddress: document.getElementById('custAddress').value
+            };
+            const res = await fetch(`${API_BASE}/customers/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cust)
+            });
+            if (res.ok) {
+                showAlert('Customer registered!', 'success');
+                document.getElementById('addCustForm').reset();
+                loadCustomers();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Registration failed');
+            }
+        }
+
+        async function addStock(productId) {
+            const qtyInput = document.getElementById(`addQty_${productId}`);
+            const qty = parseInt(qtyInput.value);
+            if (!qty || qty <= 0) return;
+
+            const res = await fetch(`${API_BASE}/products/${productId}/stock?additionalQuantity=${qty}`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert('Stock updated!', 'success');
+                loadProducts();
+            }
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            const res = await fetch(`${API_BASE}/orders/${orderId}/status?status=${status}`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert(`Order status updated to ${status}. Stock re-adjusted if cancelled.`, 'success');
+                loadProducts();
+                loadOrders();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Status update failed');
+            }
+        }
+    </script>
+</body>
+</html>

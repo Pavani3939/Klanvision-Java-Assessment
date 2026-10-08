@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Healthcare Appointment System - Klanvision</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+        }
+        .navbar-brand { font-weight: 700; font-size: 1.15rem; letter-spacing: 0.3px; }
+        .card-custom {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            background: #ffffff;
+            transition: all 0.25s ease-in-out;
+            padding: 1.25rem;
+        }
+        @media (min-width: 768px) {
+            .card-custom { padding: 2rem; }
+        }
+        .card-custom:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* Responsive Navigation Pills */
+        .nav-pills-wrapper {
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 5px;
+            margin-bottom: 1.5rem;
+        }
+        .nav-pills-wrapper::-webkit-scrollbar { height: 4px; }
+        .nav-pills-wrapper::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+        .nav-pills .nav-link {
+            border-radius: 25px;
+            padding: 8px 18px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #495057;
+            margin-right: 6px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        /* Touch-friendly inputs */
+        .form-control, .form-select, .btn {
+            min-height: 44px;
+            border-radius: 8px;
+        }
+
+        /* Appointment Status Badges */
+        .badge-status { font-size: 0.8rem; padding: 6px 12px; border-radius: 20px; font-weight: 600; }
+        .status-SCHEDULED { background-color: #cff4fc; color: #055160; }
+        .status-COMPLETED { background-color: #d1e7dd; color: #0f5132; }
+        .status-CANCELLED { background-color: #f8d7da; color: #842029; }
+        .status-RESCHEDULED { background-color: #fff3cd; color: #664d03; }
+
+        /* Responsive Table Container */
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        @media (max-width: 575.98px) {
+            .table-responsive table { font-size: 0.85rem; }
+            .btn-sm { min-height: 36px; padding: 4px 8px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="bi bi-hospital-fill text-primary me-2 fs-4"></i>
+                <span>KLANVISION Healthcare</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse mt-2 mt-lg-0" id="navbarContent">
+                <div class="ms-auto d-flex align-items-center bg-secondary bg-opacity-25 p-2 rounded-3">
+                    <span class="text-light me-2 small fw-semibold"><i class="bi bi-person-circle me-1"></i>Role:</span>
+                    <select id="roleSelector" class="form-select form-select-sm w-auto border-0" onchange="switchRole()">
+                        <option value="ADMIN">Admin View</option>
+                        <option value="DOCTOR">Doctor View</option>
+                        <option value="PATIENT" selected>Patient View</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-3 py-md-4">
+        <!-- Alert Notification -->
+        <div id="alertContainer"></div>
+
+        <!-- Scrollable Responsive Navigation Pills -->
+        <div class="nav-pills-wrapper">
+            <ul class="nav nav-pills flex-nowrap justify-content-start justify-content-md-center" id="mainTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="book-tab" data-bs-toggle="tab" data-bs-target="#bookView" type="button"><i class="bi bi-calendar-plus me-1"></i>Book Appointment</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="doctors-tab" data-bs-toggle="tab" data-bs-target="#doctorsView" type="button"><i class="bi bi-person-badge me-1"></i>Doctors Directory</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patientsView" type="button"><i class="bi bi-people me-1"></i>Patients</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointmentsView" type="button"><i class="bi bi-card-checklist me-1"></i>Appointments</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab-content" id="mainTabContent">
+
+            <!-- BOOK APPOINTMENT TAB -->
+            <div class="tab-pane fade show active" id="bookView">
+                <div class="row justify-content-center">
+                    <div class="col-12 col-md-10 col-lg-7">
+                        <div class="card card-custom">
+                            <h4 class="card-title text-primary mb-3 h5 fw-bold d-flex align-items-center">
+                                <i class="bi bi-calendar-check me-2 fs-4"></i>Book an Appointment
+                            </h4>
+                            <form id="bookForm" onsubmit="handleBookAppointment(event)">
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium small">Select Patient</label>
+                                    <select class="form-select" id="bookPatientSelect" required>
+                                        <option value="">-- Choose Registered Patient --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium small">Select Doctor</label>
+                                    <select class="form-select" id="bookDoctorSelect" required>
+                                        <option value="">-- Choose Doctor --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium small">Date & Time</label>
+                                    <input type="datetime-local" class="form-control" id="bookDateTime" required>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-medium small">Notes / Reason for Visit</label>
+                                    <textarea class="form-control" id="bookNotes" rows="2" placeholder="Symptoms, purpose of consultation..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                                    <i class="bi bi-check-circle me-1"></i>Confirm Appointment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOCTORS TAB -->
+            <div class="tab-pane fade" id="doctorsView">
+                <div class="row g-3 g-md-4">
+                    <div class="col-12 col-lg-4" id="addDoctorCard">
+                        <div class="card card-custom">
+                            <h5 class="card-title text-primary mb-3 h6 fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Add New Doctor</h5>
+                            <form id="addDoctorForm" onsubmit="handleAddDoctor(event)">
+                                <div class="mb-2"><input type="text" class="form-control" id="docName" placeholder="Full Name (e.g. Dr. Sarah)" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="docSpec" placeholder="Specialization (e.g. Cardiology)" required></div>
+                                <div class="mb-2"><input type="number" class="form-control" id="docExp" placeholder="Years of Experience" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="docContact" placeholder="Contact Phone" required></div>
+                                <div class="mb-3"><input type="email" class="form-control" id="docEmail" placeholder="Email Address"></div>
+                                <button type="submit" class="btn btn-success w-100 fw-semibold">Add Doctor</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-8" id="doctorListContainer">
+                        <div class="card card-custom">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                                <h5 class="card-title text-primary mb-0 h6 fw-bold"><i class="bi bi-search me-2"></i>Doctor Directory</h5>
+                                <div class="input-group w-100 w-sm-auto" style="max-width: 300px;">
+                                    <input type="text" class="form-control" id="searchDocInput" placeholder="Search name or specialty..." onkeyup="searchDoctors()">
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th><th>Doctor Name</th><th>Specialization</th><th>Experience</th><th>Contact</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="doctorsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PATIENTS TAB -->
+            <div class="tab-pane fade" id="patientsView">
+                <div class="row g-3 g-md-4">
+                    <div class="col-12 col-lg-4">
+                        <div class="card card-custom">
+                            <h5 class="card-title text-primary mb-3 h6 fw-bold"><i class="bi bi-person-heart me-2"></i>Register Patient</h5>
+                            <form id="addPatientForm" onsubmit="handleRegisterPatient(event)">
+                                <div class="mb-2"><input type="text" class="form-control" id="patName" placeholder="Full Name" required></div>
+                                <div class="mb-2"><input type="email" class="form-control" id="patEmail" placeholder="Email" required></div>
+                                <div class="mb-2"><input type="text" class="form-control" id="patPhone" placeholder="Phone Number" required></div>
+                                <div class="mb-2"><input type="number" class="form-control" id="patAge" placeholder="Age" required></div>
+                                <div class="mb-3">
+                                    <select class="form-select" id="patGender" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 fw-semibold">Register Patient</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-8">
+                        <div class="card card-custom">
+                            <h5 class="card-title text-primary mb-3 h6 fw-bold"><i class="bi bi-people-fill me-2"></i>Registered Patients</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Age/Gender</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="patientsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- APPOINTMENTS TAB -->
+            <div class="tab-pane fade" id="appointmentsView">
+                <div class="card card-custom">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                        <h5 class="card-title text-primary mb-0 h6 fw-bold"><i class="bi bi-journal-medical me-2"></i>Appointments & History</h5>
+                        <div class="btn-group btn-group-sm w-100 w-sm-auto">
+                            <button class="btn btn-outline-primary active" id="btnFilterAll" onclick="filterAppointments('ALL')">All</button>
+                            <button class="btn btn-outline-primary" id="btnFilterActive" onclick="filterAppointments('ACTIVE')">Scheduled</button>
+                            <button class="btn btn-outline-primary" id="btnFilterHistory" onclick="filterAppointments('HISTORY')">History</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th><th>Patient</th><th>Doctor</th><th>Date & Time</th><th>Status</th><th>Notes</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '/api';
+        let currentRole = 'PATIENT';
+        let appointmentsCache = [];
+        let currentFilter = 'ALL';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPatients();
+            loadDoctors();
+            loadAppointments();
+        });
+
+        function switchRole() {
+            currentRole = document.getElementById('roleSelector').value;
+            showAlert(`Switched to ${currentRole} mode.`, 'info');
+            loadAppointments();
+        }
+
+        function showAlert(msg, type = 'danger') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${msg}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 4000);
+        }
+
+        async function loadPatients() {
+            try {
+                const res = await fetch(`${API_BASE}/patients`);
+                const patients = await res.json();
+                
+                const select = document.getElementById('bookPatientSelect');
+                select.innerHTML = '<option value="">-- Choose Registered Patient --</option>';
+                const tbody = document.getElementById('patientsTableBody');
+                tbody.innerHTML = '';
+
+                patients.forEach(p => {
+                    select.innerHTML += `<option value="${p.id}">${p.name} (${p.email})</option>`;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>#${p.id}</td>
+                            <td><strong>${p.name}</strong></td>
+                            <td class="text-break">${p.email}</td>
+                            <td>${p.phone}</td>
+                            <td>${p.age} / ${p.gender}</td>
+                        </tr>`;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadDoctors() {
+            try {
+                const res = await fetch(`${API_BASE}/doctors`);
+                const doctors = await res.json();
+                renderDoctors(doctors);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderDoctors(doctors) {
+            const select = document.getElementById('bookDoctorSelect');
+            select.innerHTML = '<option value="">-- Choose Doctor --</option>';
+            const tbody = document.getElementById('doctorsTableBody');
+            tbody.innerHTML = '';
+
+            doctors.forEach(d => {
+                select.innerHTML += `<option value="${d.id}">${d.name} (${d.specialization})</option>`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${d.id}</td>
+                        <td><strong>${d.name}</strong></td>
+                        <td><span class="badge bg-secondary">${d.specialization}</span></td>
+                        <td>${d.experience} Yrs</td>
+                        <td>${d.contactNumber}</td>
+                    </tr>`;
+            });
+        }
+
+        async function searchDoctors() {
+            const query = document.getElementById('searchDocInput').value;
+            const res = await fetch(`${API_BASE}/doctors/search?query=${encodeURIComponent(query)}`);
+            const doctors = await res.json();
+            renderDoctors(doctors);
+        }
+
+        async function loadAppointments() {
+            try {
+                const res = await fetch(`${API_BASE}/appointments`);
+                appointmentsCache = await res.json();
+                renderAppointments();
+            } catch (err) { console.error(err); }
+        }
+
+        function filterAppointments(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('#appointmentsView .btn-group button').forEach(b => b.classList.remove('active'));
+            if(filter === 'ALL') document.getElementById('btnFilterAll').classList.add('active');
+            if(filter === 'ACTIVE') document.getElementById('btnFilterActive').classList.add('active');
+            if(filter === 'HISTORY') document.getElementById('btnFilterHistory').classList.add('active');
+            renderAppointments();
+        }
+
+        function renderAppointments() {
+            const tbody = document.getElementById('appointmentsTableBody');
+            tbody.innerHTML = '';
+
+            let list = appointmentsCache;
+            if (currentFilter === 'ACTIVE') {
+                list = list.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED');
+            } else if (currentFilter === 'HISTORY') {
+                list = list.filter(a => a.status === 'COMPLETED' || a.status === 'CANCELLED');
+            }
+
+            list.forEach(a => {
+                const dt = new Date(a.appointmentDateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                let actions = '';
+                if (a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') {
+                    actions += `<button class="btn btn-sm btn-outline-danger me-1 my-1" onclick="cancelAppointment(${a.id})"><i class="bi bi-x-circle"></i> Cancel</button>`;
+                    if (currentRole === 'ADMIN' || currentRole === 'DOCTOR') {
+                        actions += `<button class="btn btn-sm btn-outline-success my-1" onclick="completeAppointment(${a.id})"><i class="bi bi-check2-circle"></i> Complete</button>`;
+                    }
+                } else {
+                    actions = `<span class="text-muted small">Finalized</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${a.id}</td>
+                        <td>${a.patient.name}</td>
+                        <td><strong>${a.doctor.name}</strong><br><small class="text-muted">${a.doctor.specialization}</small></td>
+                        <td><small>${dt}</small></td>
+                        <td><span class="badge badge-status status-${a.status}">${a.status}</span></td>
+                        <td><small>${a.notes || '-'}</small></td>
+                        <td>${actions}</td>
+                    </tr>`;
+            });
+        }
+
+        async function handleRegisterPatient(e) {
+            e.preventDefault();
+            const patient = {
+                name: document.getElementById('patName').value,
+                email: document.getElementById('patEmail').value,
+                phone: document.getElementById('patPhone').value,
+                age: parseInt(document.getElementById('patAge').value),
+                gender: document.getElementById('patGender').value
+            };
+            const res = await fetch(`${API_BASE}/patients/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patient)
+            });
+            if (res.ok) {
+                showAlert('Patient registered successfully!', 'success');
+                document.getElementById('addPatientForm').reset();
+                loadPatients();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Registration failed');
+            }
+        }
+
+        async function handleAddDoctor(e) {
+            e.preventDefault();
+            const doctor = {
+                name: document.getElementById('docName').value,
+                specialization: document.getElementById('docSpec').value,
+                experience: parseInt(document.getElementById('docExp').value),
+                contactNumber: document.getElementById('docContact').value,
+                email: document.getElementById('docEmail').value
+            };
+            const res = await fetch(`${API_BASE}/doctors`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(doctor)
+            });
+            if (res.ok) {
+                showAlert('Doctor added successfully!', 'success');
+                document.getElementById('addDoctorForm').reset();
+                loadDoctors();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Failed to add doctor');
+            }
+        }
+
+        async function handleBookAppointment(e) {
+            e.preventDefault();
+            const dtVal = document.getElementById('bookDateTime').value;
+            if (!dtVal) {
+                showAlert('Please select appointment date and time');
+                return;
+            }
+            const payload = {
+                patientId: parseInt(document.getElementById('bookPatientSelect').value),
+                doctorId: parseInt(document.getElementById('bookDoctorSelect').value),
+                appointmentDateTime: dtVal + ':00',
+                notes: document.getElementById('bookNotes').value
+            };
+            const res = await fetch(`${API_BASE}/appointments/book`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                showAlert('Appointment booked successfully!', 'success');
+                document.getElementById('bookForm').reset();
+                loadAppointments();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Booking failed. Duplicate slot or invalid data.');
+            }
+        }
+
+        async function cancelAppointment(id) {
+            if (!confirm('Cancel this appointment?')) return;
+            const res = await fetch(`${API_BASE}/appointments/${id}/cancel`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert('Appointment cancelled.', 'warning');
+                loadAppointments();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Cancellation failed');
+            }
+        }
+
+        async function completeAppointment(id) {
+            const res = await fetch(`${API_BASE}/appointments/${id}/status?status=COMPLETED`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert('Appointment completed!', 'success');
+                loadAppointments();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Status update failed');
+            }
+        }
+    </script>
+</body>
+</html>
